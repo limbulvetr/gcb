@@ -1,0 +1,24 @@
+package common
+
+import (
+	"fmt"
+
+	"github.com/howeyc/gopass"
+)
+
+func ReadPassword(prompt string) string {
+	fmt.Print(prompt)
+	key, err := gopass.GetPasswd()
+	if err != nil {
+		panic(err)
+	}
+	return string(key)
+}
+
+func AwaitInput(prompt string) {
+	if prompt != "" {
+		fmt.Println(prompt)
+	}
+	fmt.Println("Press Enter to continue...")
+	fmt.Scanln()
+}

@@ -4,21 +4,19 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"fmt"
 	"io/ioutil"
 	"os"
 
-	"github.com/howeyc/gopass"
 	"golang.org/x/crypto/ssh"
 
 	"github.com/limbulvetr/gcb/common"
 )
 
 func main() {
-	password := readConsoleInput("Enter enc password...")
-	password2 := readConsoleInput("Enter enc password again...")
+	password := common.ReadPassword("Enter enc password... ")
+	password2 := common.ReadPassword("Enter enc password again... ")
 	if password != password2 {
-		fmt.Println("Different passwords, exiting")
+		common.AwaitInput("Different passwords, exiting")
 		os.Exit(-1)
 	}
 
@@ -26,39 +24,32 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	err = outputPubKey(&prv.PublicKey)
+	err = outputPubKey(&prv.PublicKey, "gcb.pub")
 	if err != nil {
 		panic(err)
 	}
 
-	err = outputEncPrvKey(prv, password)
+	err = outputEncPrvKey(prv, password, "gcb.gcbsecret")
 	if err != nil {
 		panic(err)
 	}
+
+	common.AwaitInput("Key and secret file successfully generated.")
 }
 
-func readConsoleInput(prompt string) string {
-	fmt.Print(prompt)
-	key, err := gopass.GetPasswd()
-	if err != nil {
-		panic(err)
-	}
-	return string(key)
-}
-
-func outputPubKey(pub *rsa.PublicKey) error {
+func outputPubKey(pub *rsa.PublicKey, fileName string) error {
 	sshPub, err := ssh.NewPublicKey(pub)
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile("gcb.pub", ssh.MarshalAuthorizedKey(sshPub), 0655)
+	return ioutil.WriteFile(fileName, ssh.MarshalAuthorizedKey(sshPub), 0655)
 }
 
-func outputEncPrvKey(prv *rsa.PrivateKey, password string) error {
+func outputEncPrvKey(prv *rsa.PrivateKey, password string, fileName string) error {
 	aesKey := common.AESGen32([]byte(password))
 	encPrvBytes, err := common.AESEnc(aesKey, x509.MarshalPKCS1PrivateKey(prv))
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile("gcb_secret", encPrvBytes, 0655)
+	return ioutil.WriteFile(fileName, encPrvBytes, 0655)
 }
