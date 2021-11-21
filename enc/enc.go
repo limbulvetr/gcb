@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/limbulvetr/gcb/common"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -16,7 +17,7 @@ func main() {
 	flag.Parse()
 	inputFileList := flag.Args()
 
-	key, err := readKeyFromFile(*keyFile)
+	pub, err := readPublicKeyFromFile(*keyFile)
 	if err != nil {
 		panic(err)
 	}
@@ -25,29 +26,46 @@ func main() {
 		fmt.Println("Warning: Should provide at least one input file in args.")
 	}
 	for _, inputFile := range inputFileList {
-		input, err := ioutil.ReadFile(inputFile)
+		err = encryptFile(pub, inputFile)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(len(input), "octets read from file", inputFile)
-
-		enc, err := enc(key, input)
-		if err != nil {
-			panic(err)
-		}
-
-		encFileName := inputFile + ".gcb"
-		err = ioutil.WriteFile(encFileName, enc, 0655)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println("File encryption successful:", encFileName)
 	}
-
-	return
 }
 
-func readKeyFromFile(fileName string) (ssh.PublicKey, error) {
+func encryptFile(pub *rsa.PublicKey, inputFile string) error {
+	aesKey, err := common.AESRand32()
+	if err != nil {
+		return err
+	}
+	encAESKey, err := rsaEnc(pub, aesKey)
+	if err != nil {
+		return err
+	}
+	fmt.Println(len(encAESKey), "key len")
+
+	input, err := ioutil.ReadFile(inputFile)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(len(input), "octets read from file", inputFile)
+
+	encInput, err := common.AESEncWithNonce(aesKey, input)
+	if err != nil {
+		panic(err)
+	}
+
+	payload := append(encAESKey, encInput...)
+	encFileName := inputFile + ".gcb"
+	err = ioutil.WriteFile(encFileName, payload, 0655)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("File encryption successful:", encFileName)
+	return nil
+}
+
+func readPublicKeyFromFile(fileName string) (*rsa.PublicKey, error) {
 	keyBytes, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		return nil, err
@@ -56,13 +74,11 @@ func readKeyFromFile(fileName string) (ssh.PublicKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	return key, nil
-}
-
-func enc(key ssh.PublicKey, input []byte) ([]byte, error) {
 	parsedCryptoKey := key.(ssh.CryptoPublicKey)
 	pubCrypto := parsedCryptoKey.CryptoPublicKey()
-	pub := pubCrypto.(*rsa.PublicKey)
+	return pubCrypto.(*rsa.PublicKey), nil
+}
 
+func rsaEnc(pub *rsa.PublicKey, input []byte) ([]byte, error) {
 	return rsa.EncryptOAEP(sha256.New(), rand.Reader, pub, input, nil)
 }

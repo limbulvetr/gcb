@@ -18,12 +18,12 @@ func main() {
 	flag.Parse()
 	inputFileList := flag.Args()
 
-	encSecret, err := ioutil.ReadFile(*secretFile)
+	secret, err := ioutil.ReadFile(*secretFile)
 	if err != nil {
 		panic(err)
 	}
 	password := common.ReadPassword("Enter dec password... ")
-	prv, err := decSecret(encSecret, password)
+	prv, err := decSecret(secret, password)
 	if err != nil {
 		panic(err)
 	}
@@ -32,36 +32,52 @@ func main() {
 		fmt.Println("Warning: Should provide at least one input file in args.")
 	}
 	for _, inputFile := range inputFileList {
-		if !strings.HasSuffix(inputFile, ".gcb") {
-			fmt.Printf("Unknown file format: [%s] should be a .gcb file, Skipping this.\n", inputFile)
-			continue
-		}
-
-		input, err := ioutil.ReadFile(inputFile)
+		err := decryptFile(prv, inputFile)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(len(input), "octets read from file", inputFile)
-
-		dec, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, prv, input, nil)
-		if err != nil {
-			panic(err)
-		}
-
-		decFileName := inputFile + "dec"
-		err = ioutil.WriteFile(decFileName, dec, 0655)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println("File decryption successful:", decFileName)
 	}
 
 	return
 }
 
-func decSecret(encSecret []byte, password string) (*rsa.PrivateKey, error) {
+func decryptFile(prv *rsa.PrivateKey, inputFile string) error {
+	if !strings.HasSuffix(inputFile, ".gcb") {
+		fmt.Printf("Unknown file format: [%s] should be a .gcb file, Skipping this.\n", inputFile)
+		return nil
+	}
+
+	input, err := ioutil.ReadFile(inputFile)
+	if err != nil {
+		return err
+	}
+	fmt.Println(len(input), "octets read from file", inputFile)
+
+	encAESKey := input[:256]
+	encData := input[256:]
+
+	aesKey, err := rsaDec(prv, encAESKey)
+	if err != nil {
+		return err
+	}
+
+	data, err := common.AESDecWithNonce(aesKey, encData)
+	if err != nil {
+		return err
+	}
+
+	decFileName := inputFile + "dec"
+	err = ioutil.WriteFile(decFileName, data, 0655)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("File decryption successful:", decFileName)
+	return nil
+}
+
+func decSecret(secret []byte, password string) (*rsa.PrivateKey, error) {
 	aesKey := common.AESGen32([]byte(password))
-	prvKeyBytes, err := common.AESDecWithNonce(aesKey, encSecret)
+	prvKeyBytes, err := common.AESDecWithNonce(aesKey, secret)
 	if err != nil {
 		return nil, err
 	}
@@ -70,4 +86,8 @@ func decSecret(encSecret []byte, password string) (*rsa.PrivateKey, error) {
 		return nil, err
 	}
 	return prv, nil
+}
+
+func rsaDec(prv *rsa.PrivateKey, input []byte) ([]byte, error) {
+	return rsa.DecryptOAEP(sha256.New(), rand.Reader, prv, input, nil)
 }

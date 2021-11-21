@@ -48,3 +48,12 @@ func AESGen32(password []byte) []byte {
 	var SALT = []byte("GatherCatalogBabble")
 	return pbkdf2.Key(password, SALT, 10000, 32, sha256.New)
 }
+
+func AESRand32() ([]byte, error) {
+	key := make([]byte, 32)
+	_, err := io.ReadFull(rand.Reader, key)
+	if err != nil {
+		return nil, err
+	}
+	return key, nil
+}
