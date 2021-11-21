@@ -4,44 +4,46 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"flag"
 	"fmt"
 	"io/ioutil"
-	"os"
 
 	"golang.org/x/crypto/ssh"
-
-	"github.com/limbulvetr/gcb/common"
 )
 
 func main() {
-	if len(os.Args) != 2 {
-		common.AwaitExit("Unknown command: Requires exactly 1 args: name of the file to encrypt.")
-	}
-	inputFile := os.Args[1]
+	keyFile := flag.String("k", "gcb.pub", "public key file")
+	flag.Parse()
+	inputFileList := flag.Args()
 
-	key, err := readKeyFromFile("gcb.pub")
+	key, err := readKeyFromFile(*keyFile)
 	if err != nil {
 		panic(err)
 	}
 
-	input, err := ioutil.ReadFile(inputFile)
-	if err != nil {
-		panic(err)
+	if len(inputFileList) == 0 {
+		fmt.Println("Warning: Should provide at least one input file in args.")
 	}
-	fmt.Println(len(input), "octets read from file", inputFile)
+	for _, inputFile := range inputFileList {
+		input, err := ioutil.ReadFile(inputFile)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(len(input), "octets read from file", inputFile)
 
-	enc, err := enc(key, input)
-	if err != nil {
-		panic(err)
+		enc, err := enc(key, input)
+		if err != nil {
+			panic(err)
+		}
+
+		encFileName := inputFile + ".gcb"
+		err = ioutil.WriteFile(encFileName, enc, 0655)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("File encryption successful:", encFileName)
 	}
 
-	encFileName := inputFile + ".gcb"
-	err = ioutil.WriteFile(encFileName, enc, 0655)
-	if err != nil {
-		panic(err)
-	}
-
-	common.Await("File encryption successful:", encFileName)
 	return
 }
 

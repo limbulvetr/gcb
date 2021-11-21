@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"flag"
 	"io/ioutil"
 
 	"golang.org/x/crypto/ssh"
@@ -12,22 +13,25 @@ import (
 )
 
 func main() {
+	outputFile := flag.String("o", "gcb", "output file, will be appended \".pub\" and \".gcbsecret\"")
+	flag.Parse()
+
 	password := common.ReadPassword("Enter enc password... ")
 	password2 := common.ReadPassword("Enter enc password again... ")
 	if password != password2 {
-		common.AwaitExit("Different passwords, exiting")
+		common.AwaitExit("Error: Different passwords, exiting")
 	}
 
 	prv, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		panic(err)
 	}
-	err = outputPubKey(&prv.PublicKey, "gcb.pub")
+	err = outputPubKey(&prv.PublicKey, *outputFile+".pub")
 	if err != nil {
 		panic(err)
 	}
 
-	err = outputEncPrvKey(prv, password, "gcb.gcbsecret")
+	err = outputEncPrvKey(prv, password, *outputFile+".gcbsecret")
 	if err != nil {
 		panic(err)
 	}

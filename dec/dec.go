@@ -5,24 +5,20 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
+	"flag"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"strings"
 
 	"github.com/limbulvetr/gcb/common"
 )
 
 func main() {
-	if len(os.Args) != 2 {
-		common.AwaitExit("Unknown command: Requires exactly 1 args: name of the file to decrypt.")
-	}
-	inputFile := os.Args[1]
-	if !strings.HasSuffix(inputFile, ".gcb") {
-		common.AwaitExit("Unknown file format: should be a .gcb file.")
-	}
+	secretFile := flag.String("k", "gcb.gcbsecret", "gcb secret key file")
+	flag.Parse()
+	inputFileList := flag.Args()
 
-	encSecret, err := ioutil.ReadFile("gcb.gcbsecret")
+	encSecret, err := ioutil.ReadFile(*secretFile)
 	if err != nil {
 		panic(err)
 	}
@@ -32,24 +28,34 @@ func main() {
 		panic(err)
 	}
 
-	input, err := ioutil.ReadFile(inputFile)
-	if err != nil {
-		panic(err)
+	if len(inputFileList) == 0 {
+		fmt.Println("Warning: Should provide at least one input file in args.")
 	}
-	fmt.Println(len(input), "octets read from file", inputFile)
+	for _, inputFile := range inputFileList {
+		if !strings.HasSuffix(inputFile, ".gcb") {
+			fmt.Println("Unknown file format", inputFile, ": should be a .gcb file. Skipping this.")
+			continue
+		}
 
-	dec, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, prv, input, nil)
-	if err != nil {
-		panic(err)
+		input, err := ioutil.ReadFile(inputFile)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(len(input), "octets read from file", inputFile)
+
+		dec, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, prv, input, nil)
+		if err != nil {
+			panic(err)
+		}
+
+		decFileName := inputFile + "dec"
+		err = ioutil.WriteFile(decFileName, dec, 0655)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("File decryption successful:", decFileName)
 	}
 
-	decFileName := inputFile + "dec"
-	err = ioutil.WriteFile(decFileName, dec, 0655)
-	if err != nil {
-		panic(err)
-	}
-
-	common.Await("File decryption successful:", decFileName)
 	return
 }
 
