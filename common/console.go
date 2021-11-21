@@ -24,3 +24,11 @@ func AwaitExit(prompt ...interface{}) {
 	fmt.Scanln()
 	os.Exit(-1)
 }
+
+func Await(prompt ...interface{}) {
+	if len(prompt) != 0 {
+		fmt.Println(prompt...)
+	}
+	fmt.Println("Press Enter to continue...")
+	fmt.Scanln()
+}

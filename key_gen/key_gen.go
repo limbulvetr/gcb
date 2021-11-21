@@ -32,7 +32,7 @@ func main() {
 		panic(err)
 	}
 
-	common.AwaitExit("Key and secret file successfully generated.")
+	common.Await("Key and secret file successfully generated.")
 }
 
 func outputPubKey(pub *rsa.PublicKey, fileName string) error {
@@ -45,7 +45,7 @@ func outputPubKey(pub *rsa.PublicKey, fileName string) error {
 
 func outputEncPrvKey(prv *rsa.PrivateKey, password string, fileName string) error {
 	aesKey := common.AESGen32([]byte(password))
-	encPrvBytes, err := common.AESEnc(aesKey, x509.MarshalPKCS1PrivateKey(prv))
+	encPrvBytes, err := common.AESEncWithNonce(aesKey, x509.MarshalPKCS1PrivateKey(prv))
 	if err != nil {
 		return err
 	}

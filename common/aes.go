@@ -10,7 +10,7 @@ import (
 	"golang.org/x/crypto/pbkdf2"
 )
 
-func AESEnc(key32 []byte, text []byte) ([]byte, error) {
+func AESEncWithNonce(key32 []byte, text []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key32)
 	if err != nil {
 		return nil, err
@@ -24,7 +24,24 @@ func AESEnc(key32 []byte, text []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return gcm.Seal(nil, nonce, text, nil), nil
+
+	enc := gcm.Seal(nil, nonce, text, nil)
+	return append(nonce, enc...), nil
+}
+
+func AESDecWithNonce(key32 []byte, text []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key32)
+	if err != nil {
+		return nil, err
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+	nonce := text[:gcm.NonceSize()]
+	enc := text[gcm.NonceSize():]
+	return gcm.Open(nil, nonce, enc, nil)
 }
 
 func AESGen32(password []byte) []byte {
