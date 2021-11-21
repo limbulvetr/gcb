@@ -1,4 +1,4 @@
-module github.com/limbulvetr/gcb/key_gen
+module github.com/limbulvetr/gcb
 
 go 1.13
 

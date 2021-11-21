@@ -1,20 +1,17 @@
 package main
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha256"
 	"crypto/x509"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 
 	"github.com/howeyc/gopass"
-	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/ssh"
+
+	"github.com/limbulvetr/gcb/common"
 )
 
 func main() {
@@ -58,32 +55,10 @@ func outputPubKey(pub *rsa.PublicKey) error {
 }
 
 func outputEncPrvKey(prv *rsa.PrivateKey, password string) error {
-	aesKey := aesGen32([]byte(password))
-	encPrvBytes, err := aesEnc(aesKey, x509.MarshalPKCS1PrivateKey(prv))
+	aesKey := common.AESGen32([]byte(password))
+	encPrvBytes, err := common.AESEnc(aesKey, x509.MarshalPKCS1PrivateKey(prv))
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile("gcb_encrypted", encPrvBytes, 0655)
-}
-
-func aesEnc(key32 []byte, text []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key32)
-	if err != nil {
-		return nil, err
-	}
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, err
-	}
-	nonce := make([]byte, gcm.NonceSize())
-	_, err = io.ReadFull(rand.Reader, nonce)
-	if err != nil {
-		return nil, err
-	}
-	return gcm.Seal(nil, nonce, text, nil), nil
-}
-
-func aesGen32(password []byte) []byte {
-	var SALT = []byte("GatherCatalogBabble")
-	return pbkdf2.Key(password, SALT, 1, 32, sha256.New)
+	return ioutil.WriteFile("gcb_secret", encPrvBytes, 0655)
 }
