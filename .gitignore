@@ -1,3 +1,5 @@
 key_gen.exe
 *.pub
 *.gcbsecret
+*.txt
+*.gcb

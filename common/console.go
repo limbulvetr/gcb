@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/howeyc/gopass"
 )
@@ -15,10 +16,11 @@ func ReadPassword(prompt string) string {
 	return string(key)
 }
 
-func AwaitInput(prompt string) {
-	if prompt != "" {
-		fmt.Println(prompt)
+func AwaitExit(prompt ...interface{}) {
+	if len(prompt) != 0 {
+		fmt.Println(prompt...)
 	}
 	fmt.Println("Press Enter to continue...")
 	fmt.Scanln()
+	os.Exit(-1)
 }
