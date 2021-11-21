@@ -33,7 +33,7 @@ func main() {
 	}
 	for _, inputFile := range inputFileList {
 		if !strings.HasSuffix(inputFile, ".gcb") {
-			fmt.Println("Unknown file format", inputFile, ": should be a .gcb file. Skipping this.")
+			fmt.Printf("Unknown file format: [%s] should be a .gcb file, Skipping this.\n", inputFile)
 			continue
 		}
 

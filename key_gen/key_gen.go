@@ -5,7 +5,9 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"flag"
+	"fmt"
 	"io/ioutil"
+	"os"
 
 	"golang.org/x/crypto/ssh"
 
@@ -19,24 +21,28 @@ func main() {
 	password := common.ReadPassword("Enter enc password... ")
 	password2 := common.ReadPassword("Enter enc password again... ")
 	if password != password2 {
-		common.AwaitExit("Error: Different passwords, exiting")
+		fmt.Println("Error: Different passwords, exiting")
+		os.Exit(-1)
 	}
 
 	prv, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		panic(err)
 	}
-	err = outputPubKey(&prv.PublicKey, *outputFile+".pub")
+
+	pubKeyFile := *outputFile + ".pub"
+	err = outputPubKey(&prv.PublicKey, pubKeyFile)
 	if err != nil {
 		panic(err)
 	}
 
-	err = outputEncPrvKey(prv, password, *outputFile+".gcbsecret")
+	secretFile := *outputFile + ".gcbsecret"
+	err = outputEncPrvKey(prv, password, secretFile)
 	if err != nil {
 		panic(err)
 	}
 
-	common.Await("Key and secret file successfully generated.")
+	fmt.Printf("Key and secret file successfully generated at %s and %s.\n", pubKeyFile, secretFile)
 }
 
 func outputPubKey(pub *rsa.PublicKey, fileName string) error {
