@@ -15,6 +15,7 @@ import (
 
 func main() {
 	secretFile := flag.String("k", "gcb.gcbsecret", "gcb secret key file")
+	outputFile := flag.String("o", "", "output file, leave blank to print to std")
 	flag.Parse()
 	inputFileList := flag.Args()
 
@@ -32,7 +33,7 @@ func main() {
 		fmt.Println("Warning: Should provide at least one input file in args.")
 	}
 	for _, inputFile := range inputFileList {
-		err := decryptFile(prv, inputFile)
+		err := decryptFile(prv, inputFile, *outputFile)
 		if err != nil {
 			panic(err)
 		}
@@ -41,7 +42,7 @@ func main() {
 	return
 }
 
-func decryptFile(prv *rsa.PrivateKey, inputFile string) error {
+func decryptFile(prv *rsa.PrivateKey, inputFile string, outputFile string) error {
 	if !strings.HasSuffix(inputFile, ".gcb") {
 		fmt.Printf("Unknown file format: [%s] should be a .gcb file, Skipping this.\n", inputFile)
 		return nil
@@ -66,12 +67,16 @@ func decryptFile(prv *rsa.PrivateKey, inputFile string) error {
 		return err
 	}
 
-	decFileName := inputFile + "dec"
-	err = ioutil.WriteFile(decFileName, data, 0655)
+	if outputFile == "" {
+		fmt.Println(string(data))
+		return nil
+	}
+
+	err = ioutil.WriteFile(outputFile, data, 0655)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("File decryption successful:", decFileName)
+	fmt.Println("File decryption successful:", outputFile)
 	return nil
 }
 
