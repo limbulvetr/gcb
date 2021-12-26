@@ -29,14 +29,12 @@ func main() {
 		panic(err)
 	}
 
-	if len(inputFileList) == 0 {
-		fmt.Println("Warning: Should provide at least one input file in args.")
+	if len(inputFileList) != 1 {
+		fmt.Println("Warning: Should provide EXACTLY ONE input file in args.")
 	}
-	for _, inputFile := range inputFileList {
-		err := decryptFile(prv, inputFile, *outputFile)
-		if err != nil {
-			panic(err)
-		}
+	err = decryptFile(prv, inputFileList[0], *outputFile)
+	if err != nil {
+		panic(err)
 	}
 
 	return
